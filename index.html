@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Мой гараж — Лада-Сервис</title>
+  <script src="https://st.max.ru/js/max-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #1a1d24;
+      --accent: #e31e24; /* цвет Lada */
+      --text: #f0f2f5;
+      --muted: #8b93a7;
+      --border: #2a2f3a;
+      --success: #22c55e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: 100px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; }
+    .user { font-size: 0.85rem; color: var(--muted); }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:active { opacity: 0.8; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-sm { padding: 8px 12px; font-size: 0.85rem; border-radius: 10px; }
+    .btn-danger { background: #b91c1c; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .car-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+    .car-meta { font-size: 0.85rem; color: var(--muted); line-height: 1.4; }
+    .actions { display: flex; gap: 8px; margin-top: 12px; }
+    .empty {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: flex-end;
+      z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card);
+      width: 100%;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 16px 32px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 { margin-bottom: 16px; font-size: 1.2rem; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+    input, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .form-actions { display: flex; gap: 10px; margin-top: 20px; }
+    .form-actions .btn { flex: 1; }
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: white;
+      font-size: 28px;
+      border: none;
+      box-shadow: 0 4px 16px rgba(227,30,36,0.4);
+      cursor: pointer;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>🚗 Мой гараж</h1>
+      <div class="user" id="userName">Загрузка...</div>
+    </div>
+  </header>
+
+  <div id="list"></div>
+
+  <button class="fab" onclick="openForm()">+</button>
+
+  <!-- Модалка добавления/редактирования -->
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <h2 id="modalTitle">Добавить автомобиль</h2>
+      <form id="carForm" onsubmit="saveCar(event)">
+        <input type="hidden" id="carId" />
+        <div class="form-group">
+          <label>Марка</label>
+          <input id="brand" required placeholder="Lada, Toyota..." />
+        </div>
+        <div class="form-group">
+          <label>Модель</label>
+          <input id="model" required placeholder="Vesta, Granta..." />
+        </div>
+        <div class="form-group">
+          <label>Год выпуска</label>
+          <input id="year" type="number" min="1980" max="2030" placeholder="2022" />
+        </div>
+        <div class="form-group">
+          <label>Госномер</label>
+          <input id="plate" placeholder="А123БВ 777" />
+        </div>
+        <div class="form-group">
+          <label>VIN (необязательно)</label>
+          <input id="vin" placeholder="XTA..." maxlength="17" />
+        </div>
+        <div class="form-group">
+          <label>Пробег, км</label>
+          <input id="mileage" type="number" placeholder="45000" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-outline" onclick="closeForm()">Отмена</button>
+          <button type="submit" class="btn">Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'lada_garage_v1';
+    let cars = [];
+    let editingId = null;
+
+    // MAX Bridge
+    const WebApp = window.WebApp || {};
+    try {
+      WebApp.ready?.();
+      WebApp.expand?.();
+    } catch(e) {}
+
+    const user = WebApp.initDataUnsafe?.user;
+    document.getElementById('userName').textContent =
+      user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'Пользователь' : 'Гость';
+
+    // ----- Storage -----
+    function load() {
+      try {
+        cars = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      } catch { cars = []; }
+      render();
+    }
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cars));
+      render();
+    }
+
+    // ----- UI -----
+    function render() {
+      const list = document.getElementById('list');
+      if (!cars.length) {
+        list.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">🏎️</div>
+            <div>Гараж пуст</div>
+            <div style="margin-top:8px;font-size:0.9rem">Нажмите + чтобы добавить автомобиль</div>
+          </div>`;
+        return;
+      }
+      list.innerHTML = cars.map(c => `
+        <div class="card">
+          <div class="car-title">${escapeHtml(c.brand)} ${escapeHtml(c.model)}</div>
+          <div class="car-meta">
+            ${c.year ? c.year + ' г. · ' : ''}${c.plate ? escapeHtml(c.plate) : 'без номера'}
+            ${c.mileage ? '<br>Пробег: ' + Number(c.mileage).toLocaleString('ru') + ' км' : ''}
+            ${c.vin ? '<br>VIN: ' + escapeHtml(c.vin) : ''}
+          </div>
+          <div class="actions">
+            <button class="btn btn-sm btn-outline" onclick="editCar('${c.id}')">Изменить</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCar('${c.id}')">Удалить</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openForm(id = null) {
+      editingId = id;
+      document.getElementById('modalTitle').textContent = id ? 'Редактировать' : 'Добавить автомобиль';
+      if (id) {
+        const c = cars.find(x => x.id === id);
+        document.getElementById('carId').value = c.id;
+        document.getElementById('brand').value = c.brand || '';
+        document.getElementById('model').value = c.model || '';
+        document.getElementById('year').value = c.year || '';
+        document.getElementById('plate').value = c.plate || '';
+        document.getElementById('vin').value = c.vin || '';
+        document.getElementById('mileage').value = c.mileage || '';
+      } else {
+        document.getElementById('carForm').reset();
+        document.getElementById('carId').value = '';
+      }
+      document.getElementById('modal').classList.add('open');
+    }
+
+    function closeForm() {
+      document.getElementById('modal').classList.remove('open');
+      editingId = null;
+    }
+
+    function saveCar(e) {
+      e.preventDefault();
+      const data = {
+        id: editingId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+        brand: document.getElementById('brand').value.trim(),
+        model: document.getElementById('model').value.trim(),
+        year: document.getElementById('year').value || null,
+        plate: document.getElementById('plate').value.trim() || null,
+        vin: document.getElementById('vin').value.trim() || null,
+        mileage: document.getElementById('mileage').value || null
+      };
+      if (editingId) {
+        const idx = cars.findIndex(c => c.id === editingId);
+        if (idx >= 0) cars[idx] = data;
+      } else {
+        cars.unshift(data);
+      }
+      save();
+      closeForm();
+      try { WebApp.HapticFeedback?.impactOccurred?.('light'); } catch {}
+    }
+
+    function editCar(id) { openForm(id); }
+
+    function deleteCar(id) {
+      if (!confirm('Удалить автомобиль из гаража?')) return;
+      cars = cars.filter(c => c.id !== id);
+      save();
+      try { WebApp.HapticFeedback?.impactOccurred?.('medium'); } catch {}
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    // Старт
+    load();
+  </script>
+</body>
+</html>
